@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser('Creating Weather Data')
 parser.add_argument('--start-idx', type=int, default=0)
 parser.add_argument('--skip-idx', type=int, default=40)
 parser.add_argument('--height', type=int, choices=[10,60,160,200])
+parser.add_argument('--file-check', action='store_true')
 
 args = parser.parse_args()
 
@@ -27,42 +28,21 @@ data_dir = "data/wind-{}m".format(args.height)
 ua_data_dir = os.path.join(data_dir, "ua")
 va_data_dir = os.path.join(data_dir, "va")
 
-temp_data_dir = "data/temperature-{}m".format(args.height)
-
-pressure_data_dir = "data/pressure-{}m".format(args.height)
 
 mkdir(ua_data_dir)
 mkdir(va_data_dir)
 
-# mkdir(temp_data_dir)
-
-# mkdir(pressure_data_dir)
-
 def process(idx_arr):
     for idx in idx_arr:
-        # wind_speed_data_check(idx)
-        # temperature_data_check(idx)
-        # pressure_data_check(idx)
-        wind_speed_data(idx)
+        if args.file_check:
+            wind_speed_data_check(idx)
+        else:
+             wind_speed_data(idx)
 
 def wind_speed_data_check(timestep):
     ua_filename = "ua_{}.npy".format(timestep)
     va_filename = "va_{}.npy".format(timestep)
     if os.path.exists(os.path.join(ua_data_dir, ua_filename)) and os.path.exists(os.path.join(va_data_dir, va_filename)):
-        pass
-    else:
-        print("Timestep {} does not exist".format(timestep))
-
-def temperature_data_check(timestep):
-    temp_filename = "temp_{}.npy".format(timestep)
-    if os.path.exists(os.path.join(temp_data_dir, temp_filename)):
-        pass
-    else:
-        print("Timestep {} does not exist".format(timestep))
-        
-def pressure_data_check(timestep):
-    pressure_filename = "pressure_{}.npy".format(timestep)
-    if os.path.exists(os.path.join(pressure_data_dir, pressure_filename)):
         pass
     else:
         print("Timestep {} does not exist".format(timestep))
