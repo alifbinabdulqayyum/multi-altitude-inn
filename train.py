@@ -471,13 +471,13 @@ batch_size = args.batch_size
 
 train_dataloader = DataLoader(dataset=train_dataset, 
                               batch_size=batch_size, 
-                              num_workers=4, 
+                              num_workers=8, 
                               pin_memory=True, 
                               shuffle=True)
 
 val_dataloader_eval = DataLoader(dataset=val_dataset_eval, 
                                  batch_size=1, 
-                                 num_workers=4, 
+                                 num_workers=8, 
                                  pin_memory=True, 
                                  shuffle=False)
 
