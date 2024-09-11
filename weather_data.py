@@ -94,44 +94,6 @@ def wind_speed_data(timestep):
     stop = time()
     print("Timestep {} time {}".format(timestep, stop-start))
 
-# def temperature_data(timestep):
-#     start = time()
-
-#     temp_filename = "temp_{}.npy".format(timestep)
-
-#     if os.path.exists(os.path.join(temp_data_dir, temp_filename)):
-#         pass
-#     else:
-#         # time instance data
-#         temp_HR = dset_temp[timestep,::,::]
-        
-#         # crop region
-#         temp_HR = temp_HR[-1500:,-2500:-500]
-
-#         np.save(os.path.join(temp_data_dir, temp_filename), temp_HR)
-
-#     stop = time()
-#     print("Timestep {} time {}".format(timestep, stop-start))
-    
-# def pressure_data(timestep):
-#     start = time()
-
-#     pressure_filename = "pressure_{}.npy".format(timestep)
-
-#     if os.path.exists(os.path.join(pressure_data_dir, pressure_filename)):
-#         pass
-#     else:
-#         # time instance data
-#         pressure_HR = dset_pressure[timestep,::,::]
-        
-#         # crop region
-#         pressure_HR = pressure_HR[-1500:,-2500:-500]
-
-#         np.save(os.path.join(pressure_data_dir, pressure_filename), pressure_HR)
-
-#     stop = time()
-#     print("Timestep {} time {}".format(timestep, stop-start))
-
 ncpu = 1
 
 # Open the wind data "file"
@@ -146,7 +108,7 @@ dset_dir = f["winddirection_{}m".format(args.height)]
 start_idx = args.start_idx
 skip_idx = args.skip_idx
 
-idx_arr = np.arange(start_idx, start_idx+1000, 40)
+idx_arr = np.arange(start_idx, start_idx+1000, args.skip_idx)
 
 batch_size = int(np.ceil(len(idx_arr) / ncpu))
 
