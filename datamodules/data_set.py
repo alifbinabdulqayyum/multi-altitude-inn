@@ -24,18 +24,6 @@ def load_data(
     visualization:bool=False,
     val_size:int=250
 ):
-    """
-    Load images and return the image stack.
-    Args:
-        m0_data_dir (string): first modality dataset file path
-        m1_data_dir (string): second modality dataset file path
-        m0_file_prefix (string): first modality dataset filename prefix
-        m1_file_prefix (string): second modality dataset filename prefix
-    Returns:
-        (mm_m0_dat, mm_m1_dat) (tensor,tensor): (num * H * W, num * H * W)
-        m0_only_dat (tensor): num * H * W
-        m1_only_dat (tensor): num * H * W
-    """  
 
     m0_idx_list = [
         idx.replace(m0_data_dir+ '/'+m0_file_prefix+'_', "").replace('.npy', "") 
@@ -68,16 +56,6 @@ def load_data(
                 m0_tmp = np.load(os.path.join(m0_data_dir, m0_file_prefix+'_{}.npy'.format(timestep)))
                 m1_tmp = np.load(os.path.join(m1_data_dir, m1_file_prefix+'_{}.npy'.format(timestep)))
 
-                # m0_tmp = np.expand_dims(m0_tmp, axis=0)
-                # m1_tmp = np.expand_dims(m1_tmp, axis=0)
-
-                # if idx == 0:
-                #     m0_dat = m0_tmp
-                #     m1_dat = m1_tmp
-                # else:
-                #     m0_dat = np.vstack((m0_dat, m0_tmp))
-                #     m1_dat = np.vstack((m1_dat, m1_tmp))
-
                 m0_dat.append(m0_tmp)
                 m1_dat.append(m1_tmp)
                 pbar.update(1)
@@ -89,15 +67,6 @@ def load_data(
     return ((torch.from_numpy(m0_dat), torch.from_numpy(m1_dat)), (m0_idx_list, m1_idx_list))
 
 def get_coords(shape, ranges=None, flatten=True):
-    """ 
-    Make coordinates at grid centers.
-    Args:
-        shape   (list): image size [H, W]
-        ranges  (list): grid boundaries [[left, right], [down, up]] 
-        flatten (bool): True
-    Returns:
-        coords  (torch.tensor): H * W, 2
-    """
     # determine the center of each grid
     coord_seqs = []
     for i, n in enumerate(shape):
@@ -293,25 +262,10 @@ class LIIFVizDataset(Dataset):
         return len(self.idx_list)
 
     def __getitem__(self, idx):
-        # # high resolution sample: H, W -> 1, H, W
-        # m0_img = self.m0_dataset[idx] / self.max_val
-        # m0_img = torch.unsqueeze(m0_img, 0)
-        
-        # # high resolution sample: H, W -> 1, H, W
-        # m1_img = self.m1_dataset[idx] / self.max_val
-        # m1_img = torch.unsqueeze(m1_img, 0)
 
         # paired sample
         h_LR, w_LR = self.low_resol
         h_HR, w_HR = round(h_LR * self.up_scale), round(w_LR * self.up_scale)
-
-        # paired sample
-        # img_HR: 1, h_HR, w_HR
-        # img_LR: 1, h_LR, w_LR
-        # m0_img_HR, m1_img_HR = transforms.RandomCrop((h_HR, w_HR))(torch.vstack((m0_img_HR,m1_img_HR)))
-        
-        # m0_img_HR = torch.unsqueeze(m0_img_HR, 0)
-        # m1_img_HR = torch.unsqueeze(m1_img_HR, 0)
 
         timestep = self.idx_list[idx]
 
@@ -333,14 +287,6 @@ class LIIFVizDataset(Dataset):
         # grid_HR: h_HR * w_HR, 2 
         # img_HR:  h_HR * w_HR, 1
         grid_HR = get_coords([h_HR, w_HR])
-
-        # if not m0_img_HR.is_contiguous():
-        #     m0_img_HR = m0_img_HR.contiguous()
-        # m0_img_HR = m0_img_HR.view(1, -1).permute(1, 0)
-        
-        # if not m1_img_HR.is_contiguous():
-        #     m1_img_HR = m1_img_HR.contiguous()
-        # m1_img_HR = m1_img_HR.view(1, -1).permute(1, 0)
 
         # get cell
         cell = torch.ones(2).int()

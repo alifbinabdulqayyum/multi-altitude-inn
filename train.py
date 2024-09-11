@@ -594,16 +594,16 @@ if args.load_pretrained_model:
     )
 
 if args.use_global_encoder and args.use_pos_encoder:
-    in_dim = args.n_encoder_features*9 + 4 + 4*args.m + args.n_global_encoder_features #1000 is for resnet50
+    in_dim = args.n_encoder_features*9 + 4 + 4*args.m + args.n_global_encoder_features 
 elif args.use_global_encoder and not args.use_pos_encoder:
-    in_dim = args.n_encoder_features*9 + 4 + args.n_global_encoder_features #1000 is for resnet50
+    in_dim = args.n_encoder_features*9 + 4 + args.n_global_encoder_features 
 elif not args.use_global_encoder and args.use_pos_encoder:
     in_dim = args.n_encoder_features*9 + 4 + 4*args.m
 else:
     in_dim = args.n_encoder_features*9 + 4
 
 m0_decoder = INR(
-    in_dim=in_dim, #args.n_encoder_features*9 + 4 + 4*args.m + 1000, #1000 is for resnet50
+    in_dim=in_dim, 
     act=args.decoder_non_lin,
 ).to(device)
 if args.load_pretrained_model:
@@ -613,7 +613,7 @@ if args.load_pretrained_model:
     )
 
 m1_decoder = INR(
-    in_dim=in_dim, #args.n_encoder_features*9 + 4 + 4*args.m + 1000, # #1000 is for resnet50
+    in_dim=in_dim, 
     act=args.decoder_non_lin,
 ).to(device)
 if args.load_pretrained_model:
@@ -648,7 +648,6 @@ num_epochs = args.num_epochs
 output = sys.stdout
 print('\t'.join(['Epoch', 'Mode', 'Reconstruction Loss', 'Cross Reconstruction Loss', 'Latent Loss']), file=output)
 
-# recon_loss = nn.MSELoss(reduction='mean')
 recon_loss = nn.L1Loss(reduction='mean')
 LR_loss = nn.MSELoss(reduction='mean')
 
@@ -774,7 +773,6 @@ for epoch in np.arange(num_epochs):
     if args.use_global_encoder:
         m0_global_encoder.eval()
         m1_global_encoder.eval()
-        # global_encoder.eval()
     m0_feature_encoder.eval()
     m1_feature_encoder.eval()
     m0_decoder.eval()
@@ -797,7 +795,6 @@ for epoch in np.arange(num_epochs):
                                                                                                         m120_latent_encoder,
                                                                                                         m0_global_encoder,
                                                                                                         m1_global_encoder,
-                                                                                                        # global_encoder,
                                                                                                         m0_feature_encoder,
                                                                                                         m1_feature_encoder,
                                                                                                         m0_decoder,
@@ -815,7 +812,6 @@ for epoch in np.arange(num_epochs):
                                                                         m120_latent_encoder,
                                                                         m0_global_encoder,
                                                                         m1_global_encoder,
-                                                                        # global_encoder,
                                                                         m0_feature_encoder,
                                                                         m1_feature_encoder,
                                                                         m0_decoder,
@@ -885,9 +881,6 @@ for epoch in np.arange(num_epochs):
 
             path = os.path.join(args.model_save_dir, 'm1_global_encoder_epoch_{}.sav'.format(epoch+1))
             torch.save(m1_global_encoder, path)
-
-            # path = os.path.join(args.model_save_dir, 'global_encoder_epoch_{}.sav'.format(epoch+1))
-            # torch.save(global_encoder, path)
 
         path = os.path.join(args.model_save_dir, 'm0_feature_encoder_epoch_{}.sav'.format(epoch+1))
         torch.save(m0_feature_encoder, path)
