@@ -1,3 +1,5 @@
+# Code adapted from "https://github.com/sanghyun-son/EDSR-PyTorch/blob/master/src/model/edsr.py"
+
 import math
 
 import torch
