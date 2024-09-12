@@ -6,3 +6,13 @@ To download the data, run the following commands:
 ```
 bash data.sh
 ```
+
+To train GEI-LIIF, GPEI-LIIF, PEI-LIIF, LIIF models, run the following commands:
+```
+bash train.sh
+```
+
+To test the trained GEI-LIIF, GPEI-LIIF, PEI-LIIF, LIIF models, run the following commands:
+```
+bash test.sh
+```
