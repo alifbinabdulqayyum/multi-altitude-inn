@@ -66,16 +66,47 @@ def load_data(
 
     return ((torch.from_numpy(m0_dat), torch.from_numpy(m1_dat)), (m0_idx_list, m1_idx_list))
 
+# def get_coords(shape, ranges=None, flatten=True):
+#     # determine the center of each grid
+#     coord_seqs = []
+#     for i, n in enumerate(shape):
+#         if ranges is None:
+#             v0, v1 = -0.99995, 1 #-1, 1
+#         else:
+#             v0, v1 = ranges[i]
+#         r = (v1 - v0) / (2 * n)
+#         seq = v0 + r + (2 * r) * torch.arange(n).float()
+#         coord_seqs.append(seq)
+    
+#     # make mesh
+#     coords = torch.stack(torch.meshgrid(*coord_seqs, indexing='ij'), dim=-1)
+#     if flatten:
+#         coords = coords.view(-1, coords.shape[-1])
+#     return coords
+
+EPSILON = 1e-6
+
 def get_coords(shape, ranges=None, flatten=True):
+    """ 
+    Make coordinates at grid centers.
+    Args:
+        shape   (list): image size [H, W]
+        ranges  (list): grid boundaries [[left, right], [down, up]] 
+        flatten (bool): True
+    Returns:
+        coords  (torch.tensor): H * W, 2
+    """
     # determine the center of each grid
     coord_seqs = []
     for i, n in enumerate(shape):
         if ranges is None:
-            v0, v1 = -0.99995, 1 #-1, 1
+            v0, v1 = -1 + EPSILON, 1 - EPSILON #-1, 1
         else:
             v0, v1 = ranges[i]
-        r = (v1 - v0) / (2 * n)
-        seq = v0 + r + (2 * r) * torch.arange(n).float()
+        # r = (v1 - v0) / (2 * n)
+        r = (v1 - v0) / (2 * (n - 1))
+        # seq = v0 + r + (2 * r) * torch.arange(n).float()
+        seq = v0 + (2 * r) * torch.arange(n).float()
         coord_seqs.append(seq)
     
     # make mesh
@@ -89,14 +120,15 @@ class LIIFDataset(Dataset):
             m0_data_dir: str,
             m1_data_dir: str,
             file_prefix: str,
+            idx_list: list,
             liif_scales: list = [1, 5],
             low_resol: list = [75, 100],
             sampling_rate: float = 1.0,
             query_points: int = 256,
             max_val: float = 50,
-            train_frac: float = 0.8,
-            total_size: int = None,
-            train: bool = True
+            # train_frac: float = 0.8,
+            # total_size: int = None,
+            # train: bool = True
     ):
         self.liif_scales = liif_scales
         self.low_resol = low_resol
@@ -109,35 +141,37 @@ class LIIFDataset(Dataset):
 
         self.m0_file_prefix, self.m1_file_prefix = file_prefix, file_prefix
 
-        m0_idx_list = [
-            idx.replace(self.m0_data_dir+ '/'+self.m0_file_prefix+'_', "").replace('.npy', "") 
-            for idx in glob.glob(self.m0_data_dir+'/*.npy')
-        ]
-        m0_idx_list = list(map(int, m0_idx_list))
-        # self.m0_idx_list.sort()
+        # m0_idx_list = [
+        #     idx.replace(self.m0_data_dir+ '/'+self.m0_file_prefix+'_', "").replace('.npy', "") 
+        #     for idx in glob.glob(self.m0_data_dir+'/*.npy')
+        # ]
+        # m0_idx_list = list(map(int, m0_idx_list))
+        # # self.m0_idx_list.sort()
 
-        m1_idx_list = [
-            idx.replace(self.m1_data_dir+ '/'+self.m1_file_prefix+'_', "").replace('.npy', "") 
-            for idx in glob.glob(self.m1_data_dir+'/*.npy')
-        ]
-        m1_idx_list = list(map(int, m1_idx_list))
-        # self.m1_idx_list.sort()
+        # m1_idx_list = [
+        #     idx.replace(self.m1_data_dir+ '/'+self.m1_file_prefix+'_', "").replace('.npy', "") 
+        #     for idx in glob.glob(self.m1_data_dir+'/*.npy')
+        # ]
+        # m1_idx_list = list(map(int, m1_idx_list))
+        # # self.m1_idx_list.sort()
 
-        self.idx_list = list(set(m0_idx_list) & set(m1_idx_list))
-        self.idx_list.sort()
+        # self.idx_list = list(set(m0_idx_list) & set(m1_idx_list))
+        # self.idx_list.sort()
 
-        if total_size is not None:
-            total_size = min(len(self.idx_list, total_size))
-        else:
-            total_size = len(self.idx_list)
+        # if total_size is not None:
+        #     total_size = min(len(self.idx_list, total_size))
+        # else:
+        #     total_size = len(self.idx_list)
 
-        train_size = int(total_size * train_frac)
-        val_size = total_size - train_size
+        # train_size = int(total_size * train_frac)
+        # val_size = total_size - train_size
 
-        if train:
-            self.idx_list = self.idx_list[:train_size]
-        else:
-            self.idx_list = self.idx_list[train_size:train_size+val_size]
+        # if train:
+        #     self.idx_list = self.idx_list[:train_size]
+        # else:
+        #     self.idx_list = self.idx_list[train_size:train_size+val_size]
+
+        self.idx_list = idx_list
 
     def __len__(self):
         return len(self.idx_list)
@@ -169,8 +203,18 @@ class LIIFDataset(Dataset):
         m0_img_HR = torch.unsqueeze(m0_img_HR, 0)
         m1_img_HR = torch.unsqueeze(m1_img_HR, 0)
         
-        m0_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m0_img_HR)
-        m1_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m1_img_HR)
+        # m0_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m0_img_HR)
+        # m1_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m1_img_HR)
+
+        m0_img_LR = torch.nn.functional.interpolate(m0_img_HR.unsqueeze(0),
+                                                   size=(h_LR, w_LR),
+                                                   align_corners=True,
+                                                   mode='bicubic')[0]
+        
+        m1_img_LR = torch.nn.functional.interpolate(m1_img_HR.unsqueeze(0),
+                                                   size=(h_LR, w_LR),
+                                                   align_corners=True,
+                                                   mode='bicubic')[0]
         
         # get HR coordinates: h_HR * w_HR, 2
         grid_HR = get_coords([h_HR, w_HR])
@@ -212,12 +256,14 @@ class LIIFVizDataset(Dataset):
         m0_data_dir: str, 
         m1_data_dir: str,
         file_prefix: str,
+        idx_list: list,
         up_scale: float = 1,
         low_resol: list = [75, 100],
         max_val: float = 50.0,
-        total_size: int = None,
-        train_frac: float = 0.8,
-        train: bool = False,
+        # total_size: int = None,
+        # train_frac: float = 0.8,
+        # train: bool = False,
+        region: str = None,
     ):
       
         self.m0_data_dir = m0_data_dir
@@ -225,38 +271,43 @@ class LIIFVizDataset(Dataset):
 
         self.m0_file_prefix, self.m1_file_prefix = file_prefix, file_prefix
 
-        m0_idx_list = [
-            idx.replace(self.m0_data_dir+ '/'+self.m0_file_prefix+'_', "").replace('.npy', "") 
-            for idx in glob.glob(self.m0_data_dir+'/*.npy')
-        ]
-        m0_idx_list = list(map(int, m0_idx_list))
-        # self.m0_idx_list.sort()
+        # m0_idx_list = [
+        #     idx.replace(self.m0_data_dir+ '/'+self.m0_file_prefix+'_', "").replace('.npy', "") 
+        #     for idx in glob.glob(self.m0_data_dir+'/*.npy')
+        # ]
+        # m0_idx_list = list(map(int, m0_idx_list))
+        # # self.m0_idx_list.sort()
 
-        m1_idx_list = [
-            idx.replace(self.m1_data_dir+ '/'+self.m1_file_prefix+'_', "").replace('.npy', "") 
-            for idx in glob.glob(self.m1_data_dir+'/*.npy')
-        ]
-        m1_idx_list = list(map(int, m1_idx_list))
-        # self.m1_idx_list.sort()
+        # m1_idx_list = [
+        #     idx.replace(self.m1_data_dir+ '/'+self.m1_file_prefix+'_', "").replace('.npy', "") 
+        #     for idx in glob.glob(self.m1_data_dir+'/*.npy')
+        # ]
+        # m1_idx_list = list(map(int, m1_idx_list))
+        # # self.m1_idx_list.sort()
 
-        self.idx_list = list(set(m0_idx_list) & set(m1_idx_list))
-        self.idx_list.sort()
+        # self.idx_list = list(set(m0_idx_list) & set(m1_idx_list))
+        # self.idx_list.sort()
 
-        if total_size is not None:
-            total_size = min(len(self.idx_list, total_size))
-        else:
-            total_size = len(self.idx_list)
+        # if total_size is not None:
+        #     total_size = min(len(self.idx_list, total_size))
+        # else:
+        #     total_size = len(self.idx_list)
 
-        train_size = int(total_size * train_frac)
-        val_size = total_size - train_size
+        # train_size = int(total_size * train_frac)
+        # val_size = total_size - train_size
 
-        if train:
-            self.idx_list = self.idx_list[:train_size]
-        else:
-            self.idx_list = self.idx_list[train_size:train_size+val_size]
+        # if train:
+        #     self.idx_list = self.idx_list[:train_size]
+        # else:
+        #     self.idx_list = self.idx_list[train_size:train_size+val_size]
+
+        self.idx_list = idx_list
+
         self.up_scale = up_scale
         self.low_resol = low_resol
         self.max_val = max_val
+
+        self.region = region
 
     def __len__(self):
         return len(self.idx_list)
@@ -277,12 +328,48 @@ class LIIFVizDataset(Dataset):
         
         # high resolution sample: H, W -> 1, H, W
         m1_img = torch.unsqueeze(torch.FloatTensor(m1_tmp), 0) / self.max_val
+
+        if self.region is not None:
+            if self.region == 'A':
+                m0_img = m0_img[:,:750,:1000]
+                m1_img = m1_img[:,:750,:1000]
+            elif self.region == 'B': 
+                m0_img = m0_img[:,:750,1000:]
+                m1_img = m1_img[:,:750,1000:]
+            elif self.region == 'C':
+                m0_img = m0_img[:,750:,:1000]
+                m1_img = m1_img[:,750:,:1000]
+            elif self.region == 'D':
+                m0_img = m0_img[:,750:,1000:]
+                m1_img = m1_img[:,750:,1000:]
+            else:
+                pass
         
-        m0_img_HR = transforms.Resize((h_HR, w_HR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m0_img)
-        m1_img_HR = transforms.Resize((h_HR, w_HR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m1_img)
+        # m0_img_HR = transforms.Resize((h_HR, w_HR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m0_img)
+        # m1_img_HR = transforms.Resize((h_HR, w_HR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m1_img)
         
-        m0_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m0_img)
-        m1_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m1_img)
+        # m0_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m0_img)
+        # m1_img_LR = transforms.Resize((h_LR, w_LR), interpolation=InterpolationMode.BICUBIC, antialias=None)(m1_img)
+
+        m0_img_HR = torch.nn.functional.interpolate(m0_img.unsqueeze(0),
+                                                   size=(h_HR, w_HR),
+                                                   align_corners=True,
+                                                   mode='bicubic')[0]
+        
+        m1_img_HR = torch.nn.functional.interpolate(m1_img.unsqueeze(0),
+                                                   size=(h_HR, w_HR),
+                                                   align_corners=True,
+                                                   mode='bicubic')[0]
+        
+        m0_img_LR = torch.nn.functional.interpolate(m0_img.unsqueeze(0),
+                                                   size=(h_LR, w_LR),
+                                                   align_corners=True,
+                                                   mode='bicubic')[0]
+        
+        m1_img_LR = torch.nn.functional.interpolate(m1_img.unsqueeze(0),
+                                                   size=(h_LR, w_LR),
+                                                   align_corners=True,
+                                                   mode='bicubic')[0]
         
         # grid_HR: h_HR * w_HR, 2 
         # img_HR:  h_HR * w_HR, 1

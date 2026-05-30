@@ -51,7 +51,7 @@ parser.add_argument('--file-prefix', type=str, choices=['ua', 'va'])
 parser.add_argument('--height-0', type=int, choices=[10, 60, 160, 200])
 parser.add_argument('--height-1', type=int, choices=[10, 60, 160, 200])
 
-parser.add_argument('--train-frac', type=float, default=0.8)
+# parser.add_argument('--train-frac', type=float, default=0.8)
 
 parser.add_argument('--h-LR', type=int, default=120)
 parser.add_argument('--w-LR', type=int, default=160)
@@ -66,6 +66,8 @@ parser.add_argument('--model-save-dir', type=str, help='Directory to Save Models
 # parser.add_argument('--save-interval', type=int, help='Intervals at which to save the models')
 
 parser.add_argument('--result-save-dir', help='path to save results')
+
+parser.add_argument('--test-region', type=str, default=None, choices=['A', 'B', 'C', 'D'])
 
 args = parser.parse_args()
 
@@ -615,6 +617,10 @@ scale = args.sr_scale
 
 print("Super Resolution Scale = {}".format(scale))
 
+import json
+with open('idx-list.json', 'r') as f:
+    idx_dict = json.load(f)
+
 val_dataset_viz = LIIFVizDataset(
     m0_data_dir=os.path.join(data_dir, "wind-{}m/{}".format(args.height_0, args.file_prefix)),
     m1_data_dir=os.path.join(data_dir, "wind-{}m/{}".format(args.height_1, args.file_prefix)),
@@ -622,8 +628,10 @@ val_dataset_viz = LIIFVizDataset(
     up_scale=scale,
     low_resol=[args.h_LR, args.w_LR],
     max_val=50,
-    train_frac=args.train_frac,
-    train=False
+    idx_list=idx_dict['test'],
+    region=args.test_region,
+    # train_frac=args.train_frac,
+    # train=False
 )
 
 val_dataloader_viz = DataLoader(dataset=val_dataset_viz, 
@@ -640,6 +648,9 @@ elif not args.use_global_encoder and args.use_pos_encoder:
     result_file_name = "result-PEI-LIIF-wKAN-scale-{}-height0-{}-height1-{}.npz".format(scale, args.height_0, args.height_1)
 else:
     result_file_name = "result-LIIF-scale-{}-height0-{}-height1-{}.npz".format(scale, args.height_0, args.height_1)
+
+if args.test_region is not None:
+    args.result_save_dir = os.path.join(args.result_save_dir, "test-region-{}".format(args.test_region))
 
 os.makedirs(args.result_save_dir, exist_ok=True)
 
@@ -660,7 +671,7 @@ data = evaluate_model(
     device=device,
     use_global_encoder=args.use_global_encoder,
     use_pos_encoder=args.use_pos_encoder,
-    sample_size=300,
+    sample_size=800,
     ch_HR=int(scale*args.h_LR),
     cw_HR=int(scale*args.w_LR),
     plot_image=False,

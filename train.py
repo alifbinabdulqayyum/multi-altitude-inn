@@ -114,6 +114,8 @@ parser.add_argument('--save-interval', type=int, help='Intervals at which to sav
 
 parser.add_argument('--query-points', type=int, default=512)
 
+# parser.add_argument('--region', type=str, default=None, choices=['A', 'B', 'C', 'D'])
+
 args = parser.parse_args()
 
 non_act = {'relu': partial(nn.ReLU),
@@ -443,28 +445,30 @@ data_dir = args.data_dir #'./data'
 
 print('Start Loading Data')
 
+import json
+with open('idx-list.json', 'r') as f:
+    idx_dict = json.load(f)
+
 train_dataset = LIIFDataset(
     m0_data_dir=os.path.join(data_dir, "wind-{}m/{}".format(args.height_0, args.file_prefix)),
     m1_data_dir=os.path.join(data_dir, "wind-{}m/{}".format(args.height_1, args.file_prefix)),
     file_prefix=args.file_prefix,
+    idx_list=idx_dict['train'],
     liif_scales=[1, args.train_sr],
     low_resol=[args.h_LR, args.w_LR],
     query_points=args.query_points,
-    max_val=50,
-    train_frac=args.train_frac,
-    train=True
+    max_val=50
 )
 
 val_dataset_eval = LIIFDataset(
     m0_data_dir=os.path.join(data_dir, "wind-{}m/{}".format(args.height_0, args.file_prefix)),
     m1_data_dir=os.path.join(data_dir, "wind-{}m/{}".format(args.height_1, args.file_prefix)),
     file_prefix=args.file_prefix,
+    idx_list=idx_dict['val'],
     liif_scales=[1, args.train_sr],
     low_resol=[args.h_LR, args.w_LR],
     query_points=args.query_points,
-    max_val=50,
-    train_frac=args.train_frac,
-    train=False
+    max_val=50
 )
 
 batch_size = args.batch_size
